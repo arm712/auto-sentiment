@@ -17,11 +17,12 @@
 ## 2. Twitter sentiment analysis products
 _(Some text related to this products)_
 
--[Tweet Sentiment Visualization] (https://www.csc.ncsu.edu/faculty/healey/tweet_viz/tweet_app/)
--[Examples of Sentiment Analysis products] (http://help.sentiment140.com/other-resources) _From_ [_Sentiment140_]
+- [Tweet Sentiment Visualization] (https://www.csc.ncsu.edu/faculty/healey/tweet_viz/tweet_app/)
+- [Examples of Sentiment Analysis products] (http://help.sentiment140.com/other-resources) _From_ [_Sentiment140_]
 (http://help.sentiment140.com/other-resources) 
--[Realtime, Twitter sentiment analysis engine] (http://www.streamcrab.com/)
--[Trending on Twitter: Social Sentiment Analytics] (http://www.bloomberg.com/company/announcements/trending-on-twitter-social-sentiment-analytics/)
+- [Realtime, Twitter sentiment analysis engine] (http://www.streamcrab.com/)
+- [Trending on Twitter: Social Sentiment Analytics] (http://www.bloomberg
+.com/company/announcements/trending-on-twitter-social-sentiment-analytics/)
 
 ## 3. Data ingestion: Tweets \& Stock Data
 Data ingestion is _"the process of obtaining, importing, and processing data for later use or storage in a database
@@ -38,11 +39,11 @@ One of the best features of Twitter is its [public API](https://dev.twitter.com/
 - [**Users:**](https://dev.twitter.com/overview/api/users) Entities that create the information via tweeting, retweeting, following, etc. They tend to represent people, companies or whatever entity interested in participating in the Twitter worldwide conversation.
 - [**Tweets:**](https://dev.twitter.com/overview/api/tweets) Basic units of textual information created by Users.
  
- The Twitter API is well documented in the links above but for practical purposes is much more efficient to use an
- existing Twitter API library for Python. In [this link](https://dev.twitter.com/overview/api/twitter-libraries) we 
- can find many libraries that are available for coding n many different languages. For our project, we have chosen to
- use [Tweepy](https://github.com/tweepy/tweepy) created by Joshua Roesslein. This library is broadly used and we can 
- find many examples of its use on the Internet.
+The Twitter API is well documented in the links above but for practical purposes is much more efficient to use an
+existing Twitter API library for Python. In [this link](https://dev.twitter.com/overview/api/twitter-libraries) we 
+can find many libraries that are available for coding n many different languages. For our project, we have chosen to
+use [Tweepy](https://github.com/tweepy/tweepy) created by Joshua Roesslein. This library is broadly used and we can 
+find many examples of its use on the Internet.
  
 #### 3.1.1. Different approaches to obtain and process tweets
 With the Tweepy library we can easily obtain tweets from a user timeline. The first important part is to obtain the 
