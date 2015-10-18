@@ -35,6 +35,90 @@ One of the best features of Twitter is its [public API](https://dev.twitter.com/
 - [**Users:**](https://dev.twitter.com/overview/api/users) Entities that create the information via tweeting, retweeting, following, etc. They tend to represent people, companies or whatever entity interested in participating in the Twitter worldwide conversation.
 - [**Tweets:**](https://dev.twitter.com/overview/api/tweets) Basic units of textual information created by Users.
  
- The Twitter API is well documented in the links above but for practical purposes is much more efficient to use an existing Twitter API library for Python. In [this link](https://dev.twitter.com/overview/api/twitter-libraries) we can find many libraries that are available for coding n many different languages.
+ The Twitter API is well documented in the links above but for practical purposes is much more efficient to use an 
+ existing Twitter API library for Python. In [this link](https://dev.twitter.com/overview/api/twitter-libraries) we 
+ can find many libraries that are available for coding n many different languages. For our project, we have chosen to
+ use [Tweepy](https://github.com/tweepy/tweepy) created by Joshua Roesslein. This library is broadly used and we can 
+ find many examples of its use on the Internet.
  
- In our case, we have decided to use [Tweepy](https://github.com/tweepy/tweepy) created by Joshua Roesslein. This library is broadly used and we can find many examples of use.
+```python                                    
+   import tweepy                                   
+```
+ 
+#### 3.1.1. Different approaches to obtain and process tweets
+With the Tweepy library we can easily obtain tweets from a user timeline. The first important part is to obtain the 
+[access tokens](https://dev.twitter.com/oauth/overview/application-owner-access-tokens) that allow access to Twitter API capabilities. 
+
+```python
+  # Keys for Twitter API
+  consumer_key = 'CONSUMER_KEY'
+  consumer_secret = 'CONSUMER_SECRET'
+  access_token_key = 'ACCESS_TOKEN_KEY'
+  access_token_secret = 'ACCESS_TOKEN_SECRET'
+```
+Once we have the tokens, we can initiate our `api` with the code below. Note that we use a JSONParser in a way that 
+all the information obtained via the API is presented in JSON format. This way is much better and efficient when we 
+planned to store the info on a DB.       
+
+```python
+from tweepy.parsers import JSONParser
+
+# Initiating the Twitter API
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token_key, access_token_secret)
+api = tweepy.API(auth, parser = JSONParser())
+```
+At this moment we face the first important decision of our project. As we are trying to obtain tweets related to 
+automobile companies we have 2 option to do so:
+
+1 Extract all the tweets from the company timeline.
+2 Extract all the tweets referring to the company.
+
+The first option is very manageable in terms of coding, with the only drawback of forcing the user to make multiple 
+requests to Twitter API. First, we obtain the user id of the companies that we want to analyze:
+
+```python
+# Getting the users for different companies
+ford_user = api.get_user("Ford")
+fiat_user = api.get_user("fcagroup")
+gm_user = api.get_user("GM")
+toyota_user = api.get_user("Toyota")
+vw_user = api.get_user("VW")
+```
+By using the function below, we can easily obtain all the tweets of any of the Twitter users defined above. 
+
+```python
+def read_tweets(api, user_id):
+    newest_id = 1 # The id of the newest tweet read (always greater than the oldest)
+    oldest_id = 0 # The id of the oldest tweet read (always lower than the oldest)
+
+    # While we are receiving new tweets
+    while newest_id -oldest_id > 0:
+        # First option: This is the first time we read tweets
+        if oldest_id == 0:
+            tweets = api.user_timeline(id = user_id, count = 200) # Take 200 tweets
+            newest_id = tweets[0]['id'] # Update the newest id
+            oldest_id = tweets[len(tweets)-1]['id'] # Update the oldest id
+
+        # Second option: This is not the first time we read tweets
+        else:
+            # Take the previous 200 tweets
+            new_tweets = api.user_timeline(id = user_id, count = 200, max_id = oldest_id)             
+            tweets.extend(new_tweets) # Append the new tweets to the list
+            newest_id = new_tweets[0]['id'] # Update the newest id
+            oldest_id = new_tweets[len(new_tweets)-1]['id'] # Update the oldest id
+
+    return tweets
+```
+While in terms of coding this approach is very simple, there is a major disadvantage in terms of accuracy of the 
+results. If we try to measure the Twitter sentiment on a particular company by using only its own tweets, we would be
+measuring the self-sentiment of the company. Although this approach may be interesting in terms of understanding the
+self-esteem of the different companies, we need external data to be able of determine correlations with stock prices.
+Since a company stock price is mainly derived from external factors, we need to include some external tweets. This 
+points us to the second option.
+
+The second option is based on "sniffing" data out of the Twitter universe by looking for particular terms in the 
+Tweets that may refer to the companies of study.
+ 
+#### 3.1.2. Saving the data in MongoDB
+ 
