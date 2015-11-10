@@ -1,5 +1,5 @@
-import pymongo
 from pymongo import MongoClient
+import time
 
 # This class creates an instance of our MongoDB
 class twitterDB(object):
@@ -14,10 +14,27 @@ class twitterDB(object):
         for element in elements:
             self.database[coll_name].insert(element)
 
-    # Saves a particular element in an specified collection
-    def save_element(self, element, coll_name):
-        self.database[coll_name].insert(element)
+    # Saves a particular element
+    def save_element(self, element):
+        data = {}
+        data['id'] = element['id']
+        data['created_at'] = element['created_at']
+        data['favorite_count'] = element['favorite_count']
+        data['retweet_count'] = element['retweet_count']
+        data['text'] = element['text']
+        data['user_name'] = element['user']['screen_name']
+        data['model_sentiment'] = {}
+        data['user_sentiment'] = {}
+        self.collection.insert(data)
 
-    # Loads all the elements from an specified collection
+    # Loads an specified collection
     def load_coll(self, coll_name):
-        return self.database[coll_name]
+        self.collection = self.database[coll_name]
+
+    # Loads the tweet from the current collection
+    def load_tweets(self):
+        tweets = []
+        docs = self.collection.find()
+        for d in docs:
+            tweets.append(d)
+        return tweets
