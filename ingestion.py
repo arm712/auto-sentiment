@@ -7,7 +7,7 @@ import time
 # Init all the required objects
 api = API()
 db = twitterDB()
-ts = time.strftime("%m%d%y %H:%M:%S", time.gmtime(time.time()))
+ts = time.strftime("%m%d%y %H%M%S", time.gmtime(time.time()))
 db.load_coll(ts)
 
 working = 1
@@ -26,4 +26,4 @@ while working == 1:
 
 sniffer = Stream(api.auth, MySniffer(api, db, seconds))
 
-sniffer.filter(track = ['volkswagen', 'toyota', 'mercedes', 'general motors'], languages = ['en'])
+sniffer.filter(track = ['volkswagen', 'toyota', 'general motors'], languages = ['en'])

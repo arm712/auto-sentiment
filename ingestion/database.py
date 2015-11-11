@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-import time
 
 # This class creates an instance of our MongoDB
 class twitterDB(object):
@@ -38,3 +37,11 @@ class twitterDB(object):
         for d in docs:
             tweets.append(d)
         return tweets
+
+    # Returns the collection names
+    def get_collection_names(self):
+        return self.database.collection_names()
+
+    # Returns the number of tweets of the current collection
+    def get_number_tweets(self):
+        return self.collection.count()
