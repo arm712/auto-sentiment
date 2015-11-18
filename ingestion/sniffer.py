@@ -20,6 +20,7 @@ class MySniffer(StreamListener):
             try:
                 tweet = json.loads(data)
                 self.database.save_element(tweet)
+                print (".")
                 return True
             except BaseException as e:
                 print("Error on_data: %s" % str(e))

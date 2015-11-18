@@ -5,10 +5,10 @@ import xlwt
 db = twitterDB()
 
 collections = db.get_collection_names()
-book = xlwt.Workbook(encoding="utf-8")
 
 for c in collections:
     db.load_coll(c)
     tweets = db.load_tweets()
-    sheet = book.add_sheet(c)
+
+
 
