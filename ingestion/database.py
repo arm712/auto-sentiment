@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 import pymongo
+import pandas as pd
 
 # This class creates an instance of our MongoDB
 class twitterDB(object):
@@ -30,6 +31,7 @@ class twitterDB(object):
     # Loads an specified collection
     def load_coll(self, coll_name):
         self.collection = self.database[coll_name]
+        self.collection_name = coll_name
 
     # Loads the tweet from the current collection
     def load_tweets(self):
@@ -66,14 +68,7 @@ class twitterDB(object):
             try:
                 option = int(option) #
                 if (option >= 0 and option <= 1):
-                    result = self.collection.update_one(
-                        {"id" : t_id},
-                        {
-                            "$set": {
-                                "user_sentiment": option
-                            }
-                        }
-                    )
+                    self.set_user_sentiment(t_id, option)
                     i += 1
                 elif (option == 2):
                     working == 0
@@ -83,3 +78,64 @@ class twitterDB(object):
             except ValueError as e:
                 print("Input %s is incorrect, please enter a number." % str(e))
 
+    # Return tweets from the current collection with a particular word
+    def get_tweets_with_word(self, word):
+        re = ".*"+word+".*"
+        tweets = self.collection.find({"text": {"$regex": re}}).sort([("id", pymongo.ASCENDING)])
+        if(tweets.count() > 0):
+            print("There are %d tweets with this word." % tweets.count())
+            working = 1
+            while working == 1:
+                print("Please tell if these tweets are positive (1) or negative (0).")
+                option = input("?")
+                try:
+                    option = int(option) #
+                    if (option >= 0 and option <= 1):
+                        for t in tweets:
+                            id = t['id']
+                            self.set_user_sentiment(id, option)
+                        working = 0
+                    else:
+                        print("Option number not valid. Enter a 0 or a 1")
+                except ValueError as e:
+                    print("Input %s is incorrect, please enter a number." % str(e))
+        else:
+            print("No tweets found with this word.")
+
+
+
+    def set_user_sentiment(self, id, option):
+        result = self.collection.update_one(
+                        {"id" : id},
+                        {
+                            "$set": {
+                                "user_sentiment": option
+                            }
+                        }
+                    )
+
+    def export_csv_user_sentiment(self):
+        file = self.collection_name+"-sentiment.csv"
+        tweets = self.collection.find({
+            "user_sentiment": {"$in": [0,1]}
+        },{
+            "text": 1,
+            "user_sentiment": 1,
+            "_id": 0
+        }
+        )
+        if(tweets.count() > 1):
+            df = pd.DataFrame(list(tweets))
+            df.drop_duplicates()
+            df.to_csv(file, encoding = 'utf-8', index = False)
+        else:
+            print("There were no classified tweets in colection %s" %self.collection_name)
+
+    def export_csv_collection(self):
+        file = self.collection_name+"-raw.csv"
+        tweets = self.collection.find()
+        if(tweets.count() > 1):
+            df = pd.DataFrame(list(tweets))
+            df.to_csv(file, encoding = 'utf-8', index = False)
+        else:
+            print("There were no tweets in colection %s" %self.collection_name)
