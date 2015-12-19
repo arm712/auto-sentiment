@@ -1,0 +1,342 @@
+/*Reference http://www.cazaar.com/ta/econ113/interpreting-beta*/
+
+
+/***************************Working with DATA*****************************************/
+
+Data prices.regression;
+	set Prices.Final_Regression_V2;
+	LogClose = round(log(Close),.001);
+	LogDaily_Change = (log(abs(Daily_Change)));
+	LogSent = round(log(Avg_Sentiment),.001);
+	LogAgg_RT = round(log(abs(Agg_RT)),.001);
+	LogL1Close	= round(log(L1Close),.001);
+	Daily_Change = Close-L1Close;
+run;
+
+
+/***** Y= LogClose******/
+ods pdf file=';
+proc reg data=prices.regression ;
+	model LogClose=  LogSent LogAgg_RT;
+run;
+ods pdf close;
+
+/***** Y= LogClose******/
+ods pdf file='
+proc reg data=prices.regression all ;
+	var LogClose LogSent LogAgg_RT;
+run;
+ods pdf close;
+
+
+/****** Y= Close*******/
+
+ods pdf file='
+proc reg data=prices.regression;
+	model LogClose= LogL1Close;
+run;
+
+ods pdf close;
+
+/***** Y= Daily_Change******/
+ods pdf file='
+proc reg data=prices.regression;
+model Daily_Change= LogSent LogAgg_RT;
+run;
+
+ods pdf close;
+
+
+
+
+
+
+
+
+/*Date Symbol	Volume	Open	High	Low	 Close	L1Volume	L2Volume	L3Volume	L4Volume	L5Volume	L1Open	L2Open	L3Open	L4Open	L5Open	L1High	L2High	L3High	L4High	L5High	
+L1Low	L2Low	L3Low	L4Low	L5Low	L1Close	L2Close	L3Close	L4Close	L5Close	Daily_Tweet_Total	Agg_Sentiment	Avg_Sentiment	Agg_User_Sentiment	Avg_User_Sentiment	Agg_RT	LogClose	
+LogSent	Daily_Change*/
+
+
+
+
+
+
+
+/***************************Join X Y*********************************************/
+
+Proc SQL;
+Create Table Prices.Final_Regression_V2 as
+Select distinct a.*, b.Date, b.Symbol, b.Daily_Tweet_Total, b.Agg_Sentiment, b.Avg_Sentiment, b.Agg_User_Sentiment, b.Avg_User_Sentiment, b.Agg_RT
+From prices.stock_prices_final as a
+inner join prices.final_tweets as b
+on a.Date=b.Date and a.Symbol=b.Symbol
+order by Symbol, Date;
+quit; 
+
+
+/**************************Combo Prices Data**************************************/
+PROC SQL;
+Create Table prices.Stock_Prices_Final as
+(select * from prices.stock_prices_gm)
+Union
+(select * from prices.stock_prices_tm)
+Union
+(select * from prices.stock_prices_vlkay)
+Union
+(select * from prices.stock_prices_vow)
+order by Symbol, Date;
+quit;
+
+
+/**************************Combo Tweet Data*************************************/
+data prices.final_tweets;
+	set prices.gm_tweets;
+run;
+proc append base = prices.final_tweets
+data=prices.tm_tweets;
+run;
+proc append base = prices.final_tweets
+data=prices.vlkay_tweets;
+run;
+
+
+/***********************Labeling Symbols and working the data*****************/
+proc sql;
+create table prices.tm_tweets as
+select New_Date as Date, CASE when Text like '%toyota%' then 'TM' 
+							  else 'None' end as Symbol length = 5, 1 as Tweet, sum(calculated Tweet) as Daily_Tweet_Total, Model_Sentiment, sum(Model_Sentiment) as Agg_Sentiment,
+							  round((calculated agg_sentiment / calculated Daily_Tweet_Total),.01) as Avg_Sentiment, 
+                              User_Sentiment,
+							  case when User_Sentiment = '1' then 1 
+							  	   when User_Sentiment = '0' then 0 else . end as User_Sentiment2, 
+							  sum(calculated User_Sentiment2) as Agg_User_Sentiment, round((calculated agg_user_sentiment / calculated Daily_Tweet_Total),.01) as Avg_User_Sentiment,
+						      index(Text, 'rt') as RT, 
+							  Case when calculated RT = 4 then 1 
+								   when calculated RT = 3 then 1 else 0 end as Count_RT, sum(calculated count_rt) as Agg_RT, Text length = 300
+from prices.final_tweets_worm
+where calculated symbol = 'TM'
+group by Date
+order by calculated Symbol,  Date ascending;
+quit;
+
+proc sql;
+create table prices.vlkay_tweets as
+select New_Date as Date, CASE when Text like '%vw%' then 'VLKAY'
+							  when Text like '%volkswagen%' then 'VLKAY' 
+							  else 'None' end as Symbol length = 5, 1 as Tweet, sum(calculated Tweet) as Daily_Tweet_Total, Model_Sentiment, sum(Model_Sentiment) as Agg_Sentiment,  
+							  round((calculated agg_sentiment / calculated Daily_Tweet_Total),.01) as Avg_Sentiment, 
+							  User_Sentiment,
+							  case when User_Sentiment = '1' then 1 
+							  	   when User_Sentiment = '0' then 0 else . end as User_Sentiment2, 
+							  sum(calculated User_Sentiment2) as Agg_User_Sentiment, round((calculated agg_user_sentiment / calculated Daily_Tweet_Total),.01) as Avg_User_Sentiment,
+							  index(Text, 'rt') as RT, 
+							  Case when calculated RT = 4 then 1 
+								   when calculated RT = 3 then 1 else 0 end as Count_RT, sum(calculated count_rt) as Agg_RT, Text length = 300
+from prices.final_tweets_worm
+where calculated symbol = 'VLKAY'
+group by Date
+order by calculated Symbol,  Date ascending;
+quit;
+
+proc sql;
+create table prices.gm_tweets as
+select New_Date as Date, CASE when Text like '%general%' then 'GM'
+							  when Text like '%gm%' then 'GM' 
+							  else 'None' end as Symbol length = 5, 1 as Tweet, sum(calculated Tweet) as Daily_Tweet_Total, Model_Sentiment, sum(Model_Sentiment) as Agg_Sentiment, 
+							  round((calculated agg_sentiment / calculated Daily_Tweet_Total),.01) as Avg_Sentiment, 
+						      User_Sentiment,
+							  case when User_Sentiment = '1' then 1 
+							  	   when User_Sentiment = '0' then 0 else . end as User_Sentiment2, 
+							  sum(calculated User_Sentiment2) as Agg_User_Sentiment, round((calculated agg_user_sentiment / calculated Daily_Tweet_Total),.01) as Avg_User_Sentiment,
+							  index(Text, 'rt') as RT, 
+							  Case when calculated RT = 4 then 1 
+								   when calculated RT = 3 then 1 else 0 end as Count_RT, sum(calculated count_rt) as Agg_RT, Text length = 300 
+from prices.final_tweets_worm
+where calculated symbol = 'GM'
+group by Date
+order by calculated Symbol,  Date ascending;
+quit; 
+
+
+
+/**********************IMport Tweets. Do Not Change***************/
+DATA prices.final_tweets_worm (keep=Text New_Date Model_Sentiment User_Sentiment);
+	length text $250 Date $10;
+	INFILE "K:\Jon\Projects\Sentiment\tweets\final_tweets.txt" FIRSTOBS=2 TRUNCOVER DLMSTR = '09'X DSD ;
+	INPUT  Index Date $ created_at $ favorite_count	id $ Model_Sentiment User_Sentiment $ retweet_count	Text $	user_name $	;
+	New_Date = input(Date,mmddyy10.);
+	format New_Date mmddyy10.;
+run;
+
+
+
+/****************************************New vars for prices data************************************************/
+
+data prices.stock_prices_gm;
+	set prices.stock_prices_gm;
+	L1Volume = lag(volume);  
+	L2Volume = lag2(volume); 
+	L3Volume = lag3(volume) ;
+	L4Volume = lag4(volume) ;
+	L5Volume = lag5(volume);
+	L1Open   = lag1(Open) ;
+	L2Open   = lag2(Open) ;
+	L3Open   = lag3(Open) ;
+	L4Open   = lag4(Open) ;
+	L5Open   = lag5(Open);
+	L1High   = lag1(High);
+	L2High   = lag2(High);
+	L3High   = lag3(High);
+	L4High   = lag4(High);
+	L5High   = lag5(High);
+	L1Low   = lag1(Low) ;
+	L2Low   = lag2(Low) ;
+	L3Low   = lag3(Low) ;
+	L4Low   = lag4(Low) ;
+	L5Low   = lag5(Low) ;
+	L1Close   = lag1(Close) ;
+	L2Close   = lag2(Close) ;
+	L3Close   = lag3(Close) ;
+	L4Close   = lag4(Close) ;
+	L5Close   = lag5(Close) ;
+run;
+
+data prices.stock_prices_vow;
+	set prices.stock_prices_vow;
+	L1Volume = lag(volume);  
+	L2Volume = lag2(volume); 
+	L3Volume = lag3(volume) ;
+	L4Volume = lag4(volume) ;
+	L5Volume = lag5(volume);
+	L1Open   = lag1(Open) ;
+	L2Open   = lag2(Open) ;
+	L3Open   = lag3(Open) ;
+	L4Open   = lag4(Open) ;
+	L5Open   = lag5(Open);
+	L1High   = lag1(High);
+	L2High   = lag2(High);
+	L3High   = lag3(High);
+	L4High   = lag4(High);
+	L5High   = lag5(High);
+	L1Low   = lag1(Low) ;
+	L2Low   = lag2(Low) ;
+	L3Low   = lag3(Low) ;
+	L4Low   = lag4(Low) ;
+	L5Low   = lag5(Low) ;
+	L1Close   = lag1(Close) ;
+	L2Close   = lag2(Close) ;
+	L3Close   = lag3(Close) ;
+	L4Close   = lag4(Close) ;
+	L5Close   = lag5(Close) ;
+run;
+
+data prices.stock_prices_tm;
+	set prices.stock_prices_tm;
+    L1Volume = lag(volume);  
+	L2Volume = lag2(volume); 
+	L3Volume = lag3(volume) ;
+	L4Volume = lag4(volume) ;
+	L5Volume = lag5(volume);
+	L1Open   = lag1(Open) ;
+	L2Open   = lag2(Open) ;
+	L3Open   = lag3(Open) ;
+	L4Open   = lag4(Open) ;
+	L5Open   = lag5(Open);
+	L1High   = lag1(High);
+	L2High   = lag2(High);
+	L3High   = lag3(High);
+	L4High   = lag4(High);
+	L5High   = lag5(High);
+	L1Low   = lag1(Low) ;
+	L2Low   = lag2(Low) ;
+	L3Low   = lag3(Low) ;
+	L4Low   = lag4(Low) ;
+	L5Low   = lag5(Low) ;
+	L1Close   = lag1(Close) ;
+	L2Close   = lag2(Close) ;
+	L3Close   = lag3(Close) ;
+	L4Close   = lag4(Close) ;
+	L5Close   = lag5(Close) ;
+run;
+
+data prices.stock_prices_vlkay;
+	set prices.stock_prices_vlkay;
+    L1Volume = lag(volume);  
+	L2Volume = lag2(volume); 
+	L3Volume = lag3(volume) ;
+	L4Volume = lag4(volume) ;
+	L5Volume = lag5(volume);
+	L1Open   = lag1(Open) ;
+	L2Open   = lag2(Open) ;
+	L3Open   = lag3(Open) ;
+	L4Open   = lag4(Open) ;
+	L5Open   = lag5(Open);
+	L1High   = lag1(High);
+	L2High   = lag2(High);
+	L3High   = lag3(High);
+	L4High   = lag4(High);
+	L5High   = lag5(High);
+	L1Low   = lag1(Low) ;
+	L2Low   = lag2(Low) ;
+	L3Low   = lag3(Low) ;
+	L4Low   = lag4(Low) ;
+	L5Low   = lag5(Low) ;
+	L1Close   = lag1(Close) ;
+	L2Close   = lag2(Close) ;
+	L3Close   = lag3(Close) ;
+	L4Close   = lag4(Close) ;
+	L5Close   = lag5(Close) ;
+run;
+
+/**********Separate Table for individual treatment********/
+data prices.stock_prices_gm prices.stock_prices_tm prices.stock_prices_vlkay prices.stock_prices_vow work.blank;
+	set prices.stock_prices;
+	if Symbol = 'GM' then output prices.stock_prices_gm;
+	else if Symbol = 'TM' then output prices.stock_prices_tm;
+	else if Symbol = 'VLKAY' then output prices.stock_prices_vlkay;
+	else if Symbol = 'VOW' then output prices.stock_prices_vow;
+	else output work.blank;
+run;
+
+proc sql;
+create table prices.stock_prices as
+select new_date as Date , symbol, volume, round(open,.01) as Open, round(high,.01) as High, round(low,.01) as Low, round(close,.01) as Close
+from prices.stock_prices_worm
+order by symbol, date;
+quit;
+/***************************Getting data into SAS. DO NOT MODIFY*********************************/
+filename indata pipe 'dir K:\Jon\Projects\Sentiment\Files\*.txt';
+
+data prices.files;
+	length fname $256;
+	infile indata length=reclen;
+	input fname $varying256. reclen ;
+	if index(fname, '.txt');
+	fname = cats(scan(fname,-2),'.txt');
+run;
+proc print data = prices.files;
+run;
+
+data prices.stock_prices_worm (drop=fname myfilename);
+	length myfilename $100;
+	length Date $10;
+	*length Symbol $5;
+	set prices.files;
+	filepath ='K:\Jon\Projects\Sentiment\Files\'||fname;
+	infile jon1 filevar=filepath length=reclen end=done firstobs=2 missover dlm='09'x;
+	do while(not done);
+		myfilename = filepath;
+		input Symbol $ Date $	Open  High	Low	Close	Volume	Adj_Close;
+		New_Date = input(Date,mmddyy10.);
+			format New_Date mmddyy10.;
+		output;
+	end;
+run;
+	
+
+
+
+
+
+
